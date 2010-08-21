@@ -17,7 +17,7 @@ if( $gBitSystem->isPackageActive( 'gatekeeper' ) ) {
 		'content_store_function' => 'gatekeeper_content_store',
 		'content_load_sql_function' => 'gatekeeper_content_load',
 		'content_list_sql_function' => 'gatekeeper_content_list',
-		'content_verify_access' => 'gatekeeper_content_verify_access',
+		'content_verify_access_function' => 'gatekeeper_content_verify_access',
 		'content_edit_mini_tpl' => 'bitpackage:gatekeeper/choose_security.tpl',
 		'content_icon_tpl' => 'bitpackage:gatekeeper/gatekeeper_service_icon.tpl',
 	) );
