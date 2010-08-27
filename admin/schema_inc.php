@@ -1,5 +1,21 @@
 <?php
 
+global $gBitSystem;
+
+$gBitSystem->registerPackageInfo( GATEKEEPER_PKG_NAME, array(
+	'description' => "Gatekeeper system allows the creation of protected content. This content can then only be accessed by using a specified url, password or only the creator.",
+	'license' => '<a href="http://www.gnu.org/licenses/licenses.html#LGPL">LGPL</a>',
+) );
+
+// Requirements
+$gBitSystem->registerRequirements( GATEKEEPER_PKG_NAME, array(
+	'liberty' => array( 'min' => '2.1.4' ),
+));
+
+// Install process
+global $gBitInstaller;
+if( is_object( $gBitInstaller ) ){
+
 $tables = array(
 
 'gatekeeper_security' => " 
@@ -23,16 +39,9 @@ $tables = array(
 
 );
 
-global $gBitInstaller;
-
 foreach( array_keys( $tables ) AS $tableName ) {
 	$gBitInstaller->registerSchemaTable( GATEKEEPER_PKG_NAME, $tableName, $tables[$tableName] );
 }
-
-$gBitInstaller->registerPackageInfo( GATEKEEPER_PKG_NAME, array(
-	'description' => "Gatekeeper system allows the creation of protected content. This content can then only be accessed by using a specified url, password or only the creator.",
-	'license' => '<a href="http://www.gnu.org/licenses/licenses.html#LGPL">LGPL</a>',
-) );
 
 // ### Indexes
 $indices = array (
@@ -64,7 +73,4 @@ $gBitInstaller->registerPreferences( GATEKEEPER_PKG_NAME, array(
 	array(GATEKEEPER_PKG_NAME, 'gatekeeper_list_description','y'),
 ) );
 
-// Requirements
-$gBitInstaller->registerRequirements( GATEKEEPER_PKG_NAME, array(
-	'liberty' => array( 'min' => '2.1.4' ),
-));
+}
