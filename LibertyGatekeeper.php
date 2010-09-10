@@ -168,94 +168,96 @@ function gatekeeper_content_display( &$pContent, &$pParamHash ) {
 
 function gatekeeper_content_verify_access( &$pContent, &$pHash ) {
 	global $gBitUser, $gBitSystem, $gLibertySystem;
-
-	if( !count( $pHash ) ) {
-		$pHash = &$pContent->mInfo;
-	}
 	$error = NULL;
-	if( !$gBitUser->isRegistered() || ( !empty( $pHash['user_id'] ) && $pHash['user_id'] != $gBitUser->mUserId )) {
-		if( !$gBitUser->isAdmin() ) {
-			if( $pContent->mDb->isAdvancedPostgresEnabled() && !empty( $pHash['content_id'] ) ) {
-				global $gBitDb, $gBitSmarty;
-				// This code makes use of the badass /usr/share/pgsql/contrib/tablefunc.sql
-				// contribution that you have to install like: psql foo < /usr/share/pgsql/contrib/tablefunc.sql
-				// This code pulls all branches for the current node and determines if there is a path from this content to the root
-				// without hitting a security_id. If there is clear path it returns TRUE. If there is a security_id, then
-				// it determines if the current user has permission
-				$query = "SELECT branch,level,cb_item_content_id,cb_gallery_content_id,gs.*
-						FROM connectby('`".BIT_DB_PREFIX."fisheye_gallery_image_map`', '`gallery_content_id`', '`item_content_id`', ?, 0, '/') AS t(`cb_gallery_content_id` int,`cb_item_content_id` int, `level` int, `branch` text)
-							LEFT OUTER JOIN `".BIT_DB_PREFIX."gatekeeper_security_map` gsm ON (`cb_gallery_content_id`=gsm.`content_id`)
-							LEFT OUTER JOIN `".BIT_DB_PREFIX."gatekeeper_security` gs ON (gs.`security_id`=gsm.`security_id`)
-						ORDER BY branch
-						";
-		$gBitDb->setFatalActive( FALSE );
-				$tree = $pContent->mDb->getAssoc( $query, array( $pHash['content_id'] ) );
-		$gBitDb->setFatalActive( TRUE );
-				if( $tree ) {
-					// we will assume true here since the prevention cases can repeatedly flag FALSE
-					$lastLevel = -1;
-					foreach( $tree AS $branch => $node ) {
-						if( $node['level'] <= $lastLevel ) {
-							// we have moved followed a branch to the end and there is no security!
-							unset( $errorMessage );
-							break;
-						}
-						if( $node['security_id'] ) {
-							$ret = FALSE;
-							if( $node['is_hidden'] ) {
-								if( !empty( $pHash['no_fatal'] ) ) {
-									// We are on a listing, so we should hide this with an empty error message
-									$errorMessage = '';
-								}
-							}
-							if( $node['is_private'] ) {
-								if( !empty( $pHash['no_fatal'] ) ) {
-									// We are on a listing, so we should hide this with an empty error message
-									$errorMessage = '';
-								} else {
-									$errorMessage = tra( 'You cannot view this' ).' '.strtolower( $gLibertySystem->getContentTypeName( $pHash['content_type_guid'] ) );
-								}
-							}
-							if( !empty( $node['access_answer'] ) ) {
-								$pContent->mInfo = array_merge( $pHash, $node );
-								if( $valError = gatekeeper_authenticate( $node, empty( $pHash['no_fatal'] ) ) ) {
-									$errorMessage = $valError;
-								}
-							}
-						}
-						$lastLevel = $node['level'];
-					}
+	if( $pContent->isValid() ){
 
-					if( isset( $errorMessage ) ) {
+		if( !count( $pHash ) ) {
+			$pHash = &$pContent->mInfo;
+		}
+		if( !$gBitUser->isRegistered() || ( !empty( $pHash['user_id'] ) && $pHash['user_id'] != $gBitUser->mUserId )) {
+			if( !$gBitUser->isAdmin() ) {
+				if( $pContent->mDb->isAdvancedPostgresEnabled() && !empty( $pHash['content_id'] ) ) {
+					global $gBitDb, $gBitSmarty;
+					// This code makes use of the badass /usr/share/pgsql/contrib/tablefunc.sql
+					// contribution that you have to install like: psql foo < /usr/share/pgsql/contrib/tablefunc.sql
+					// This code pulls all branches for the current node and determines if there is a path from this content to the root
+					// without hitting a security_id. If there is clear path it returns TRUE. If there is a security_id, then
+					// it determines if the current user has permission
+					$query = "SELECT branch,level,cb_item_content_id,cb_gallery_content_id,gs.*
+							FROM connectby('`".BIT_DB_PREFIX."fisheye_gallery_image_map`', '`gallery_content_id`', '`item_content_id`', ?, 0, '/') AS t(`cb_gallery_content_id` int,`cb_item_content_id` int, `level` int, `branch` text)
+								LEFT OUTER JOIN `".BIT_DB_PREFIX."gatekeeper_security_map` gsm ON (`cb_gallery_content_id`=gsm.`content_id`)
+								LEFT OUTER JOIN `".BIT_DB_PREFIX."gatekeeper_security` gs ON (gs.`security_id`=gsm.`security_id`)
+							ORDER BY branch
+							";
+			$gBitDb->setFatalActive( FALSE );
+					$tree = $pContent->mDb->getAssoc( $query, array( $pHash['content_id'] ) );
+			$gBitDb->setFatalActive( TRUE );
+					if( $tree ) {
+						// we will assume true here since the prevention cases can repeatedly flag FALSE
+						$lastLevel = -1;
+						foreach( $tree AS $branch => $node ) {
+							if( $node['level'] <= $lastLevel ) {
+								// we have moved followed a branch to the end and there is no security!
+								unset( $errorMessage );
+								break;
+							}
+							if( $node['security_id'] ) {
+								$ret = FALSE;
+								if( $node['is_hidden'] ) {
+									if( !empty( $pHash['no_fatal'] ) ) {
+										// We are on a listing, so we should hide this with an empty error message
+										$errorMessage = '';
+									}
+								}
+								if( $node['is_private'] ) {
+									if( !empty( $pHash['no_fatal'] ) ) {
+										// We are on a listing, so we should hide this with an empty error message
+										$errorMessage = '';
+									} else {
+										$errorMessage = tra( 'You cannot view this' ).' '.strtolower( $gLibertySystem->getContentTypeName( $pHash['content_type_guid'] ) );
+									}
+								}
+								if( !empty( $node['access_answer'] ) ) {
+									$pContent->mInfo = array_merge( $pHash, $node );
+									if( $valError = gatekeeper_authenticate( $node, empty( $pHash['no_fatal'] ) ) ) {
+										$errorMessage = $valError;
+									}
+								}
+							}
+							$lastLevel = $node['level'];
+						}
+
+						if( isset( $errorMessage ) ) {
+							if( empty( $pHash['no_fatal'] ) ) {
+								$gBitSystem->setHttpStatus( 403 );
+								$gBitSystem->fatalError( tra( $errorMessage ));
+							} else {
+								$error['access_control'] = $errorMessage;
+							}
+						}
+
+					} elseif( !empty( $gBitDb->mDb->_errorMsg ) ) {
+						if( $gBitUser->isOwner() ) {
+							$gBitSmarty->assign( 'feedback', array( 'warning' => $gBitDb->mDb->_errorMsg.'<br/>'.tra( 'Please check the galleries to which this '.$gLibertySystem->getContentTypeName( $pHash['content_type_guid'] ).' belongs' ) ) );
+						}
+					}
+				} elseif( !empty( $pHash['security_id'] ) ) {
+					// order matters here!
+					if( $pHash['is_hidden'] == 'y' ) {
+						$ret = TRUE;
+					}
+					if( $pHash['is_private'] == 'y' ) {
+						$errorMessage = tra( 'You cannot view this' ).' '.strtolower( $gLibertySystem->getContentTypeName( $pHash['content_type_guid'] ) );
 						if( empty( $pHash['no_fatal'] ) ) {
-							$gBitSystem->setHttpStatus( 403 );
 							$gBitSystem->fatalError( tra( $errorMessage ));
 						} else {
 							$error['access_control'] = $errorMessage;
 						}
 					}
-
-				} elseif( !empty( $gBitDb->mDb->_errorMsg ) ) {
-					if( $gBitUser->isOwner() ) {
-						$gBitSmarty->assign( 'feedback', array( 'warning' => $gBitDb->mDb->_errorMsg.'<br/>'.tra( 'Please check the galleries to which this '.$gLibertySystem->getContentTypeName( $pHash['content_type_guid'] ).' belongs' ) ) );
-					}
-				}
-			} elseif( !empty( $pHash['security_id'] ) ) {
-				// order matters here!
-				if( $pHash['is_hidden'] == 'y' ) {
-					$ret = TRUE;
-				}
-				if( $pHash['is_private'] == 'y' ) {
-					$errorMessage = tra( 'You cannot view this' ).' '.strtolower( $gLibertySystem->getContentTypeName( $pHash['content_type_guid'] ) );
-					if( empty( $pHash['no_fatal'] ) ) {
-						$gBitSystem->fatalError( tra( $errorMessage ));
-					} else {
-						$error['access_control'] = $errorMessage;
-					}
-				}
-				if( !empty( $pHash['access_answer'] ) ) {
-					if( !($valError = gatekeeper_authenticate( $pHash, empty( $pHash['no_fatal'] ) ) ) ) {
-						$error['access_control'] = $valError;
+					if( !empty( $pHash['access_answer'] ) ) {
+						if( !($valError = gatekeeper_authenticate( $pHash, empty( $pHash['no_fatal'] ) ) ) ) {
+							$error['access_control'] = $valError;
+						}
 					}
 				}
 			}
