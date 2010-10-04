@@ -1,0 +1,69 @@
+---
+gatekeeper: 
+  version: 0.0.0
+  required: false
+  requirements: 
+    liberty: 
+      min: 2.1.4
+  description: >
+    Gatekeeper system allows the creation of protected content. This content can then only be accessed by using a specified url, password or only the creator.
+  license: 
+    name: LGPL
+    description: Licensed under the GNU LESSER GENERAL PUBLIC LICENSE.
+    url: http://www.gnu.org/copyleft/lesser.html 
+  homeable: false
+  tables: 
+    gatekeeper_security: |
+      
+      security_id I4 PRIMARY,
+      user_id I4 NOTNULL,
+      security_description C(160) NOTNULL,
+      group_id I4,
+      is_private C(1),
+      is_hidden C(1),
+      access_question C(250),
+      access_answer C(128)
+      CONSTRAINT	', CONSTRAINT `gatekeeper_access_user_ref` FOREIGN KEY (`user_id`) REFERENCES `users_users` (`user_id`)'
+      
+    gatekeeper_security_map: |
+      
+      security_id I4 PRIMARY,
+      content_id I4 PRIMARY
+      CONSTRAINT	', CONSTRAINT `gatekeeper_consec_sec_ref` FOREIGN KEY (`security_id`) REFERENCES `gatekeeper_security` (`security_id`)
+      , CONSTRAINT `gatekeeper_access_content_ref` FOREIGN KEY (`content_id`) REFERENCES `liberty_content` (`content_id`)'
+      
+  indexes: 
+    gatekeeper_security_user_idx: 
+      table: gatekeeper_security
+      cols: user_id
+      opts: 
+    gatekeeper_consec_security_idx: 
+      table: gatekeeper_security_map
+      cols: security_id
+      opts: 
+    gatekeeper_consec_content_idx: 
+      table: gatekeeper_security_map
+      cols: content_id
+      opts: 
+        - UNIQUE
+  sequences: 
+    gatekeeper_security_id_seq: 
+      start: 1
+  permissions: 
+    p_gatekeeper_create: 
+      description: Can create a gatekeeper
+      level: registered
+    p_gatekeeper_edit: 
+      description: Can edit any gatekeeper
+      level: editors
+    p_gatekeeper_admin: 
+      description: Can admin gatekeeper
+      level: editors
+    p_gatekeeper_read: 
+      description: Can read gatekeeper
+      level: basic
+  preferences: 
+    gatekeeper_default_ordering: title_desc
+    gatekeeper_list_content_id: 'y'
+    gatekeeper_list_title: 'y'
+    gatekeeper_list_description: 'y'
