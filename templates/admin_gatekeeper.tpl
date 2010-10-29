@@ -14,7 +14,7 @@
 			</div>
 		{/foreach}
 
-		<div class="row submit">
+		<div class="buttonHolder row submit">
 			<input type="submit" name="assigngatekeeper" value="{tr}Assign gatekeeper{/tr}" />
 		</div>
 	{/form}
@@ -65,7 +65,7 @@
 			{/forminput}
 		</div>
 
-		<div class="row submit">
+		<div class="buttonHolder row submit">
 			<input type="submit" name="cancel" value="{tr}Cancel{/tr}" />&nbsp;
 			<input type="submit" name="savegatekeeper" value="{tr}Save gatekeeper{/tr}" />
 		</div>
